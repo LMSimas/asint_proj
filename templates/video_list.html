@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+
+<head>
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.3.1/dist/jquery.min.js"></script>
+  <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/fomantic-ui@2.8.7/dist/semantic.css">
+  <script src="https://cdn.jsdelivr.net/npm/fomantic-ui@2.8.7/dist/semantic.js">  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-xmlrpc/0.4.3/jquery.xmlrpc.js"> </script>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+  <link href="https://vjs.zencdn.net/7.8.4/video-js.css" rel="stylesheet" />
+  <script src="http://vjs.zencdn.net/7.8.4/video.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/videojs-youtube/2.6.1/Youtube.min.js"></script>
+  <script>
+    function updateVideostable() {
+      $.ajax({
+        url: '/API/videos/',
+        type: "GET",
+        dataType: "json", //tell that we are going to receive a json
+        success: function (data) {
+          console.log(data);
+          $('#videosTable > tbody:last-child').empty()
+          data["videos"].forEach(v => {
+            console.log(v["video_id"] + " " + v["description"])
+            $('#videosTable > tbody:last-child').
+            append('<tr data-link="url1"> <td>'+ v["video_id"]+'</td><td>' +v["description"] + '</td><td>' +v["user_id"]
+               + '</td><td>' + v["questions"] +'</td>  </tr>');
+          });
+        },
+      });
+    }
+    function DeleteOneVideo(videoid) {
+      requestData = { "videoID": videoid }
+      $.ajax({
+        url: '/API/videos/' + videoid + '/',
+        type: "POST",
+        dataType: "json", //tell that we are going to receive a json
+        contentType: 'application/json',
+        data: JSON.stringify(requestData),
+        success: function (data) {
+          console.log("Enter in Delete Part");
+          console.log(data["result"])
+          updateVideostable();
+        },
+      });
+    }
+    function addNewVideo(url, descrition) {
+      // TODO 4 - create an object (requestData) that contains the url and descrition
+      // look at the server to understand what data should be sent.
+      requestData = { "description": descrition, "url": url }
+      $.ajax({
+        url: '/API/videos/',
+        type: "POST",
+        dataType: "json",
+        contentType: 'application/json',
+        data: JSON.stringify(requestData),
+        success: function (data) {
+          console.log("Video Created!")
+          console.log(data)
+          
+          updateVideostable()
+        }
+      });
+    }
+    function goBack() {
+      window.location.href = "http://127.0.0.1:5000/"
+    }
+    function get_into_videoPage(selected_videoID){
+      window.location.href = "http://127.0.0.1:5000/API/videos/" +selected_videoID +"/";
+    }
+    $(document).ready(function () {
+      
+      $("#buttonUpdateVideotable").click(function () {
+        updateVideostable();
+      })
+      updateVideostable();
+
+      $("#buttonDeleteVideo").click(function () {
+        video_id = $('#videoid').val()
+        console.log(video_id)
+        DeleteOneVideo(video_id);
+        $('#videoid').val('')
+      })
+
+      $("#buttonAddVideo").click(function () {
+        newVideoURL = $('#newVideoURL').val()
+        newVideoDESC = $('#newVideoDescription').val()
+        addNewVideo(newVideoURL, newVideoDESC)
+        $('#newVideoURL').val('')
+        $('#newVideoDescription').val('')
+      })
+
+      $("#buttonBack").click(function () {
+        goBack()
+      })
+      
+      $("#videosTable").click(function(){
+        selected_videoID = $(event.target)[0].parentElement.childNodes[1].textContent
+        console.log(selected_videoID)
+        if(selected_videoID != 'ID'){
+          get_into_videoPage(selected_videoID)//in order 2 don't catch the header event clicks
+        }
+      })
+    });
+  </script>
+</head>
+
+<body style="margin-left: 15px; margin-top: 15px;">
+  <h3>List of videos</h3>
+  <table class="ui celled table selectable" id="videosTable">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Description</th>
+        <th>From User</th>
+        <th>Questions</th>
+      </tr>
+    </thead>
+    <tbody>
+    </tbody>
+  </table>
+  <button class="ui button" id="buttonUpdateVideotable">
+    Update List
+  </button>
+
+  <h3>Add a new Video</h3>
+  <div class="ui input">
+    <input type="text" placeholder="Video URL" id="newVideoURL">
+  </div>
+  <div class="ui input">
+    <input type="text" placeholder="Video Description" id="newVideoDescription">
+  </div>
+  <button class="ui button" id="buttonAddVideo">
+    Add new Video
+  </button>
+
+  <h3>Delete a Video</h3>
+  <div class="ui input">
+    <input type="text" placeholder="Video ID" id="videoid">
+  </div>
+
+  <button class="ui button" id="buttonDeleteVideo">
+    Delete a video
+  </button>
+
+  <h4>Go to menu</h4>
+  <button class="ui button" id="buttonBack">
+    Go Back
+  </button>
+
+
+</body>
+
+</html>

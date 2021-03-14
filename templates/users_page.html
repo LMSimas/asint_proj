@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+
+<head>
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.3.1/dist/jquery.min.js"></script>
+  <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/fomantic-ui@2.8.7/dist/semantic.css">
+  <script src="https://cdn.jsdelivr.net/npm/fomantic-ui@2.8.7/dist/semantic.js">  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-xmlrpc/0.4.3/jquery.xmlrpc.js"> </script>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+  <link href="https://vjs.zencdn.net/7.8.4/video-js.css" rel="stylesheet" />
+  <script src="http://vjs.zencdn.net/7.8.4/video.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/videojs-youtube/2.6.1/Youtube.min.js"></script>
+  <script>
+    function updateUserstable() {
+      $.ajax({
+        url: '/API/users/',
+        type: "GET",
+        dataType: "json", //tell that we are going to receive a json
+        success: function (data) {
+          console.log(data);
+          $('#usersTable > tbody:last-child').empty()
+          data["users"].forEach(u => {
+            console.log(u["IST_id"] + " " + u["Name"])
+            $('#usersTable > tbody:last-child').append('<tr><td>'+ u["IST_id"]+'</td><td>' +u["Name"] + '</td><td>'+ u["N_videos"]+'</td><td>'+ u["N_questions"]+'</td><td>'+ u["N_answers"]+'</td><td>'+ u["N_views"]+'</td></tr>');
+          });
+        },
+      });
+    }
+    function goBack() {
+      window.history.back();
+    }
+    $(document).ready(function () {
+      //TODO 1 - configure the $("#buttonUpdateVideotable") 
+      // to update the table when clicked
+      updateUserstable();
+      $("#buttonBack").click(function () {
+        goBack()
+      })
+    });
+  </script>
+</head>
+<body style="margin-left: 15px; margin-top: 15px;">
+  <h3>List of Users</h3>
+  <table class="ui celled table selectable" id="usersTable">
+    <thead>
+      <tr>
+        <th>User ID</th>
+        <th>Name</th>
+        <th>Number of videos registered</th>
+        <th>Number of Questions</th>
+        <th>Number of Answers</th>
+        <th>Number of videos views</th>
+        
+      </tr>
+    </thead>
+    <tbody>
+    </tbody>
+  </table>
+  <h4>Go to menu</h4>
+  <button class="ui button" id="buttonBack">
+    Go Back
+  </button>
+
+
+</body>
+
+</html>

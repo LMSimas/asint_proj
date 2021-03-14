@@ -1,0 +1,269 @@
+
+<!DOCTYPE html>
+<html>
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.3.1/dist/jquery.min.js"></script>
+  <link rel="stylesheet" type="text/css"  href="https://cdn.jsdelivr.net/npm/fomantic-ui@2.8.7/dist/semantic.css">
+  <script  src="https://cdn.jsdelivr.net/npm/fomantic-ui@2.8.7/dist/semantic.js">  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-xmlrpc/0.4.3/jquery.xmlrpc.js"> </script>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+  <link href="https://vjs.zencdn.net/7.8.4/video-js.css" rel="stylesheet" />
+  <script src="http://vjs.zencdn.net/7.8.4/video.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/videojs-youtube/2.6.1/Youtube.min.js"></script>
+
+  <script> 
+    var vID = 0  
+    var user = ""
+    var qID_selected = 0
+    function newQuestion(text, question_time){
+      requestData = {"text": text, "video_id": vID, "time": question_time}
+      $.ajax({
+        url: '/API/QA/'+vID+'/questions/',
+        type: "POST",
+        dataType: "json",
+        contentType: 'application/json',
+        data: JSON.stringify(requestData),
+        success: function (data) {
+          console.log("Question added for "+vID)
+          console.log(data["result"])
+          updateQuestionsTable()
+        },
+      })
+    }
+
+    function newAnswer(text){
+      requestData = {"text": text, "question_id": qID_selected}
+      $.ajax({
+        url: '/API/QA/questions/'+qID_selected+'/',
+        type: "POST",
+        dataType: "json",
+        contentType: 'application/json',
+        data: JSON.stringify(requestData),
+        success: function (data) {
+          console.log("New Answer Added!!")
+          updateAnswersTable()
+        },
+      })
+    }
+
+    function updateQuestionsTable() {
+      $.ajax({
+        url: '/API/QA/'+ vID + '/questions/',
+        type: "GET",
+        dataType: "json", //tell that we are going to receive a json
+        success: function (data) {
+          console.log(data);
+          $('#questionTable > tbody:last-child').empty()
+          data["questions"].forEach(v => {
+            console.log(v["time"] + " " + v["text"])
+            $('#questionTable > tbody:last-child').
+            append('<tr><td>'+ v["time"]+'</td><td>' +v["text"] +'</td>  </tr>');
+          });
+        },
+      });
+    }
+
+    function updateAnswersTable() {
+      $.ajax({
+        url: '/API/QA/questions/'+qID_selected+'/',
+        type: "GET",
+        dataType: "json", //tell that we are going to receive a json
+        success: function (data) {
+          console.log(data);
+          $('#answer_infoTable > tbody:last-child').empty()
+          data["answers"].forEach(v => {
+            console.log(v["user_id"] + " " + v["text"])
+            $('#answer_infoTable > tbody:last-child').
+            append('<tr><td>'+ v["user_id"]+'</td><td>' +v["user_name"] +'</td>  <td>' +v["text"] +'</td>  </tr>');
+          });
+        },
+      });
+    }
+    function goBack() { 
+      window.location.href = "http://127.0.0.1:5000/video_list"
+    }
+
+    function getUserFromQuestion(vID, selected_questionText, selected_questionTime){
+      requestData = {"text": selected_questionText, "video_id": vID, "time": selected_questionTime}    
+      $.ajax({
+          url: '/API/QA/questions/getUser/',
+          type: "POST",
+          dataType: "json",
+          contentType: 'application/json',
+          data: JSON.stringify(requestData),
+          success: function (data) {
+                    user = data['user_id']
+                    qID_selected = data['question_id'] 
+                    $("#selectedQuestion").show()
+                    $("#question").empty()
+                    $("#question").append("<h3><i>" + selected_questionText + "</h3></i>")
+                    $("#question").append("<h3><i>" + user + "</h3></i>")
+                    $("#question").append("<h3><i>" + selected_questionTime + " seconds</h3></i>")
+                    updateAnswersTable()
+        }
+    })
+    }
+
+    $(document).ready(function(){
+      vID = '{{video_id}}'
+      url = '{{url}}'
+      user = '{{user}}'
+         
+      
+      $("#NonValue_header").hide()
+      $("#NonValue_answer").hide()
+      //$("#question_info_div").hide()
+      $("#selectedQuestion").hide()
+      var vPlayer = videojs('videoPlayer');
+      vPlayer.src({ "type": "video/youtube", "src": url});
+      vPlayer.play()  
+      updateQuestionsTable()
+
+      $("#buttonVideoPause").click(function(){
+          vPlayer.pause()
+          var pauseTime = vPlayer.currentTime()
+          console.log(pauseTime)
+          $("#resumetime").val(pauseTime)
+      })
+
+      $("#buttonVideoResume").click(function(){
+        vPlayer.currentTime( parseFloat($("#resumetime").val()))
+        vPlayer.play()
+      })
+
+      $("#buttonAddQuestion").click(function(){
+        text = $("#newQuestionText").val()
+        console.log("Question for the video - " + vID)
+        var question_time_float = vPlayer.currentTime()
+        var question_time = question_time_float.toFixed(2)
+        //question_time = datetime.timedelta(seconds=question_time)
+        if(text != ''){
+          newQuestion(text, question_time)
+          $("#NonValue_header").hide()
+        }
+        else{ //if empty
+          $("#NonValue_header").show()
+        }
+        $("#newQuestionText").val('')
+        vPlayer.play();
+        $("#resumetime").val('')
+      })
+
+      $("#newQuestionText").click(function(){
+        vPlayer.pause();
+        var pauseTime = vPlayer.currentTime()
+        $("#resumetime").val(pauseTime)
+      })
+
+      $("#buttonAddAnswer").click(function(){
+        text = $("#newAnswerText").val()
+        console.log("Answer for the video - " + vID)
+        if(text != ''){
+          newAnswer(text)
+          $("#newAnswerText").val('')
+          $("#NonValue_answer").hide()
+        }
+        else{ //if empty
+          $("#NonValue_answer").show()
+        }  
+        
+      })
+      $("#buttonBack").click(function () {
+        goBack()
+      })
+
+      $("#questionTable").click(function(){
+        selected_questionText = $(event.target)[0].parentElement.childNodes[1].textContent
+        selected_questionTime = $(event.target)[0].parentElement.childNodes[0].textContent
+        console.log(selected_questionText)
+        console.log(selected_questionTime)
+        if(selected_questionText != 'Time'){ //if we do not click on the header of the table
+          //get_questionINFO(selected_questionText, selected_questionTime)//in order 2 don't catch the header event clicks
+          //$("#question_info_div").show()
+          getUserFromQuestion(vID, selected_questionText, selected_questionTime)
+          
+        }
+      })
+
+    })
+</script>
+  <body style="margin-left: 15px; margin-top: 15px;">
+    <h3>Video - {{video_id}} </h3>
+    <div style="width: 100%; overflow: hidden;">
+      <div style="width: 600px; float: left;"> 
+        <video  id="videoPlayer" controls 
+        class="video-js vjs-default-skin"
+        width="640"
+        data-setup='{ "autoplay": true, "preload": "auto", "techOrder": ["youtube"], "sources": [{ "type": "video/youtube" }'
+        style="display:inline-block ;"></video>
+
+        <h3>Control Video</h3>
+        <button class="ui button" id="buttonVideoPause">
+        PAUSE Video
+        </button> 
+        <div class="ui input focus" >
+          <input type="text" id="resumetime">
+        </div>
+        <button class="ui button" id="buttonVideoResume">
+          RESUME Video
+        </button>
+        <h3>Add a new Question</h3>
+        <h5 id="NonValue_header">Do not create an empty question please!</h5>
+      <div class="ui input">
+        <input type="text" placeholder="Question Text" id="newQuestionText">
+      </div>
+      <button class="ui button" id="buttonAddQuestion">
+        Add Question
+      </button>
+      </div>
+      <div style="margin-left: 650px; margin-right: 10px">  
+        <table class="ui celled table selectable" id="questionTable">
+          <thead>
+            <tr>
+              <th>Time (s)</th>
+              <th>Question</th>
+            </tr>
+          </thead>
+          <tbody>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div id = "selectedQuestion" style= "margin-top: 25px">
+      <div style="width: 110px; float: left;">
+        <h3>Question: </h3  >
+        <h3>From User: </h3  >
+        <h3>Time: </h3  >
+      </div>
+      <div id = "question" style="margin-left: 110px;">
+        
+      </div>
+      <div style="margin-top: 15px;">
+        <table class="ui celled table selectable" style= "width: 800px" id="answer_infoTable" border="2">
+          <thead>
+            <tr>
+              <th style="width: 120px;">User</th>
+              <th>Name</th>
+              <th>Answer</th>
+            </tr>
+          </thead>
+          <tbody>
+          </tbody>
+        </table>
+        <h3>Add a new Answer</h3>
+        <h5 id="NonValue_answer">Do not create an empty answer please!</h5>
+        <div class="ui input">
+          <input type="text" placeholder="Answer Text" id="newAnswerText">
+        </div>
+        <button class="ui button" id="buttonAddAnswer">
+          Add Answer
+        </button>
+      </div>
+    </div>
+    <div style="margin-top: 10px;">
+      <button class="ui button" id="buttonBack">
+        Go Back
+      </button> 
+    </div>
+</body> 
+</html>
